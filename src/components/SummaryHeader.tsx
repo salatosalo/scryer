@@ -43,6 +43,34 @@ function gradeColor(grade: string | undefined): string {
   }
 }
 
+function getAiBadgeInfo(provider: string, model: string, lang: 'ru' | 'en') {
+  const isRu = lang === 'ru';
+  if (provider === 'gemini') {
+    const cleanModel = (model || 'gemini-3.5-flash-lite').replace(/^models\//, '');
+    return {
+      name: `Gemini (${cleanModel})`,
+      fullLabel: isRu ? `Нейросеть: Google Gemini (${cleanModel})` : `AI Engine: Google Gemini (${cleanModel})`,
+      tagClass: 'bg-blue-500/15 text-blue-300 ring-blue-500/30',
+      dotClass: 'bg-blue-400',
+    };
+  }
+  if (provider === 'groq') {
+    const cleanModel = (model || 'gpt-oss-120b').replace(/^openai\//, '');
+    return {
+      name: `Groq (${cleanModel})`,
+      fullLabel: isRu ? `Нейросеть: Groq (${cleanModel})` : `AI Engine: Groq (${cleanModel})`,
+      tagClass: 'bg-orange-500/15 text-orange-300 ring-orange-500/30',
+      dotClass: 'bg-orange-400',
+    };
+  }
+  return {
+    name: isRu ? 'Движок Scryer' : 'Scryer Engine',
+    fullLabel: isRu ? 'Анализ: Встроенный движок Scryer' : 'Analysis: Scryer Offline Engine',
+    tagClass: 'bg-purple-500/15 text-purple-300 ring-purple-500/30',
+    dotClass: 'bg-purple-400',
+  };
+}
+
 export function SummaryHeader({
   engine,
   ai,
@@ -63,6 +91,7 @@ export function SummaryHeader({
   const score = rawScore != null && rawScore <= 10 ? rawScore * 10 : rawScore;
   const ringColor = gradeColor(grade);
   const ringOffset = score != null ? 176 - (176 * Math.max(0, Math.min(100, score))) / 100 : 176;
+  const aiBadge = getAiBadgeInfo(meta.provider, meta.model, lang);
 
   return (
     <section className="space-y-4">
@@ -82,7 +111,10 @@ export function SummaryHeader({
           </span>
           <span className="rounded-full bg-[#141226] px-3 py-1 text-[12px] font-medium text-purple-300/80 ring-1 ring-purple-900/30">
             {meta.isDemo ? t.demoLabel : meta.cached ? t.cachedLabel : t.liveLabel}
-            {!meta.isDemo && meta.provider !== 'engine-only' ? ` · ${meta.provider}` : ''}
+          </span>
+          <span className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[12px] font-medium ring-1 ${aiBadge.tagClass}`}>
+            <span className={`h-1.5 w-1.5 rounded-full animate-pulse ${aiBadge.dotClass}`} />
+            {aiBadge.name}
           </span>
           {!meta.isDemo && (
             <button
@@ -233,6 +265,17 @@ export function SummaryHeader({
         {/* AI Verdict & Clickable Highlights */}
         {ai && (
           <div className="mt-4 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] pb-3">
+              <div className="flex items-center gap-2 text-[14px] font-semibold text-white">
+                <Sparkles className="h-4 w-4 text-purple-400" />
+                <span>{lang === 'ru' ? 'Вердикт AI-тренера' : 'AI Coach Verdict'}</span>
+              </div>
+              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium ring-1 ${aiBadge.tagClass}`}>
+                <span className={`h-1.5 w-1.5 rounded-full ${aiBadge.dotClass}`} />
+                {aiBadge.fullLabel}
+              </span>
+            </div>
+
             <p className="max-w-4xl text-[15px] leading-relaxed text-[#E5E5EA]">
               {ai.summary.verdict}
             </p>
