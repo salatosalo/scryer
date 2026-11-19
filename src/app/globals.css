@@ -1,0 +1,106 @@
+@import "tailwindcss";
+
+:root {
+  --bg-canvas: #07080e;
+  --surface-primary: rgba(16, 15, 30, 0.85);
+  --surface-elevated: rgba(26, 22, 48, 0.80);
+  --hairline: rgba(167, 139, 250, 0.14);
+  --scryer-purple: #8b5cf6;
+  --scryer-wine: #be123c;
+  --scryer-crimson: #9f1239;
+  --ios-blue: #8b5cf6;
+  --ios-green: #34d399;
+  --ios-orange: #fb923c;
+  --ios-red: #f43f5e;
+  --ios-yellow: #fbbf24;
+  --text-primary: #f8fafc;
+  --text-secondary: #94a3b8;
+  --text-tertiary: #64748b;
+}
+
+html {
+  color-scheme: dark;
+  background-color: var(--bg-canvas);
+  color: var(--text-primary);
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  min-height: 100vh;
+  background:
+    radial-gradient(1100px 550px at 50% -140px, rgba(139, 92, 246, 0.16), transparent 70%),
+    radial-gradient(900px 450px at 85% 350px, rgba(190, 18, 60, 0.10), transparent 70%),
+    #07080e;
+  color: var(--text-primary);
+  overflow-x: hidden;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+/* iOS Translucent Glass Sheet */
+.ios-glass {
+  background: var(--surface-primary);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  border: 1px solid var(--hairline);
+}
+
+.ios-sheet {
+  background: rgba(18, 16, 32, 0.92);
+  border: 1px solid rgba(167, 139, 250, 0.12);
+}
+
+.ios-inset {
+  background: rgba(28, 24, 48, 0.65);
+  border: 1px solid rgba(167, 139, 250, 0.10);
+}
+
+/* Custom iOS Scrubber Range Slider */
+input[type="range"].ios-slider {
+  -webkit-appearance: none;
+  appearance: none;
+  height: 6px;
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.14);
+  outline: none;
+  cursor: pointer;
+}
+
+input[type="range"].ios-slider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 22px;
+  height: 22px;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45), 0 0 0 1px rgba(0, 0, 0, 0.08);
+  transition: transform 150ms cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+input[type="range"].ios-slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1);
+}
+
+input[type="range"].ios-slider:active::-webkit-slider-thumb {
+  transform: scale(1.18);
+}
+
+input[type="range"].ios-slider::-moz-range-thumb {
+  width: 22px;
+  height: 22px;
+  border: none;
+  border-radius: 9999px;
+  background: #ffffff;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.45);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
