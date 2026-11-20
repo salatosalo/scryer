@@ -29,7 +29,9 @@ interface RankBenchmarksProps {
 export function RankBenchmarks({ engine }: RankBenchmarksProps) {
   const { lang, t } = useLanguage();
   const benchmarks = useMemo(() => extractMatchBenchmarks(engine), [engine]);
-  const [selectedMetric, setSelectedMetric] = useState<string>('csAt10');
+  const [selectedMetric, setSelectedMetric] = useState<string>(
+    benchmarks.metrics[0]?.metricKey ?? 'csAt10'
+  );
 
   const activeMetric =
     benchmarks.metrics.find((m) => m.metricKey === selectedMetric) ?? benchmarks.metrics[0];
@@ -41,20 +43,33 @@ export function RankBenchmarks({ engine }: RankBenchmarksProps) {
       {/* Top Banner: Overall Macro Tier Assessment */}
       <div className="ios-glass relative overflow-hidden rounded-[24px] p-6">
         <div className="relative z-10 flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
-          <div className="space-y-1.5">
-            <div className="flex items-center gap-2">
+          <div className="space-y-2">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="text-[12px] font-semibold uppercase tracking-wider text-purple-300">
                 {t.overallMacroTier}
               </span>
+              <span className="rounded-md bg-white/[0.08] px-2.5 py-0.5 text-[11px] font-semibold text-white ring-1 ring-white/15">
+                {lang === 'ru' ? benchmarks.roleNameRu : benchmarks.roleNameEn}
+              </span>
+              {benchmarks.archetype === 'SCALING' && (
+                <span className="rounded-md bg-amber-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-amber-300 ring-1 ring-amber-500/30">
+                  {lang === 'ru' ? 'Поздний гиперкерри (-8% к норме ранней игры)' : 'Late Hypercarry (-8% early CS)'}
+                </span>
+              )}
+              {benchmarks.archetype === 'EARLY_BULLY' && (
+                <span className="rounded-md bg-rose-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-rose-300 ring-1 ring-rose-500/30">
+                  {lang === 'ru' ? 'Доминатор линии (+5% к норме CS)' : 'Lane Bully (+5% early CS)'}
+                </span>
+              )}
             </div>
+
             <h2 className="text-[26px] font-bold tracking-tight text-white sm:text-[30px]">
               <span style={{ color: overallTier.color }}>{overallTier.label}</span>{' '}
               {lang === 'ru' ? 'уровень макро-темпа' : 'Macro Pacing Level'}
             </h2>
-            <p className="max-w-xl text-[14px] text-[#A1A1AA]">
-              {lang === 'ru'
-                ? `Показатели фарма, золота и контроля смертей до 15-й минуты в этом матче соответствуют средним значениям ранга ${overallTier.label}.`
-                : `Your early CS pace, gold accumulation, and death discipline in this match align with ${overallTier.label} tier averages.`}
+
+            <p className="max-w-2xl text-[14px] leading-relaxed text-[#A1A1AA]">
+              {lang === 'ru' ? benchmarks.summaryNoteRu : benchmarks.summaryNoteEn}
             </p>
           </div>
 
@@ -69,7 +84,9 @@ export function RankBenchmarks({ engine }: RankBenchmarksProps) {
               {overallTier.label}
             </span>
             <span className="text-[11px] text-[#98989D]">
-              {engine.target.csPerMin} CS/min · {engine.target.cs} CS
+              {engine.target.position === 'SUPP'
+                ? `Vision ${engine.target.visionScore} · KP ${engine.target.killParticipation}%`
+                : `${engine.target.csPerMin} CS/min · ${engine.target.cs} CS`}
             </span>
           </div>
         </div>
@@ -217,9 +234,9 @@ export function RankBenchmarks({ engine }: RankBenchmarksProps) {
         <div className="mt-4 space-y-2">
           {RANK_TIERS.map((tier) => {
             const isMatched = tier.name === activeMetric.matchedTier.name;
-            const tierVal = tier[activeMetric.metricKey];
-            const maxVal = RANK_TIERS[RANK_TIERS.length - 1][activeMetric.metricKey];
-            const pct = Math.min(100, Math.max(10, (tierVal / (maxVal || 1)) * 100));
+            const tierVal = activeMetric.tierValues ? activeMetric.tierValues[tier.name] : 0;
+            const maxVal = activeMetric.tierValues ? (activeMetric.isLowerBetter ? activeMetric.tierValues.IRON : activeMetric.tierValues.MASTER) : 100;
+            const pct = Math.min(100, Math.max(12, (tierVal / (maxVal || 1)) * 100));
 
             return (
               <div
