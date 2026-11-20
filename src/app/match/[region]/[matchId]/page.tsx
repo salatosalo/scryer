@@ -12,6 +12,7 @@ import { DiffCharts } from '@/components/DiffCharts';
 import { DraftEvaluation } from '@/components/DraftEvaluation';
 import { MinimapCanvas } from '@/components/MinimapCanvas';
 import { MinuteTimeline } from '@/components/MinuteTimeline';
+import { RankBenchmarks } from '@/components/RankBenchmarks';
 import { SummaryHeader } from '@/components/SummaryHeader';
 import {
   deleteCachedAnalyses,
@@ -47,7 +48,7 @@ export default function MatchDashboardPage({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [activeTab, setActiveTab] = useState<'timeline' | 'draft' | 'build'>('timeline');
+  const [activeTab, setActiveTab] = useState<'timeline' | 'benchmarks' | 'draft' | 'build'>('timeline');
   const [activeMinute, setActiveMinute] = useState(1);
   const [filter, setFilter] = useState<'all' | 'key'>('key');
   const [isPlaying, setIsPlaying] = useState(false);
@@ -254,6 +255,7 @@ export default function MatchDashboardPage({
           {(
             [
               { id: 'timeline', label: t.tabTimeline },
+              { id: 'benchmarks', label: t.tabBenchmarks },
               { id: 'draft', label: t.tabDraft },
               { id: 'build', label: t.tabBuild },
             ] as const
@@ -321,6 +323,10 @@ export default function MatchDashboardPage({
             />
           </div>
         </div>
+      )}
+
+      {activeTab === 'benchmarks' && (
+        <RankBenchmarks engine={data.engineReport} />
       )}
 
       {activeTab === 'draft' && (

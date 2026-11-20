@@ -36,6 +36,14 @@ export interface Dictionary {
   tabTimeline: string;
   tabDraft: string;
   tabBuild: string;
+  tabBenchmarks: string;
+  benchmarksTitle: string;
+  benchmarksSubtitle: string;
+  overallMacroTier: string;
+  vsAverageGold: string;
+  vsChallengerMaster: string;
+  yourResult: string;
+  targetNorm: string;
   filterAll: string;
   filterKey: string;
   strengthsTitle: string;
