@@ -7,4 +7,5 @@ backups/
 .env.local
 .env.*.local
 *.log
+*.exe
 .DS_Store
