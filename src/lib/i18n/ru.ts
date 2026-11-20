@@ -91,6 +91,12 @@ export const ru: Dictionary = {
   riotKeyExpiredBody: 'Dev-ключ Riot действует 24 часа. Обнови RIOT_API_KEY в файле .env.local и перезапусти приложение. Все уже сохранённые разборы ниже по-прежнему работают.',
   summonerNotFound: 'Игрок не найден. Проверь формат Ник#Тег и выбранный сервер.',
   invalidRiotId: 'Введи Riot ID в формате Ник#Тег (например, chovyloh#228).',
+  pinAsFavorite: 'Закрепить профиль',
+  pinnedProfile: 'Избранный профиль',
+  unpinProfile: 'Открепить',
+  recentSearches: 'Недавние поиски',
+  clearRecentSearches: 'Очистить историю поиска',
+  clearHistory: 'Очистить историю',
   ratings: {
     great: 'Отлично',
     ok: 'Норма',

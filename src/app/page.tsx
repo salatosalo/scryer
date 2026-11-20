@@ -1,8 +1,8 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { Suspense, useEffect, useState } from 'react';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import {
   AlertCircle,
   ChevronRight,
@@ -10,11 +10,23 @@ import {
   Database,
   Search,
   Sparkles,
+  Star,
+  X,
 } from 'lucide-react';
 import type { MatchListItemDto } from '@/app/api/summoner/route';
 import { useLanguage } from '@/lib/i18n/context';
 import { getChampionIconUrl } from '@/lib/riot/assets';
 import { getQueueLabel, REGION_LIST, type RegionCode } from '@/lib/riot/regions';
+import {
+  addRecentSearch,
+  clearRecentSearches,
+  getFavoriteProfile,
+  getRecentSearches,
+  removeFavoriteProfile,
+  saveFavoriteProfile,
+  type FavoriteProfile,
+  type RecentSearchItem,
+} from '@/lib/storage/favorite-profile';
 import {
   clearUserHistory,
   getUserHistory,
@@ -34,8 +46,9 @@ function formatDuration(sec: number): string {
   return `${m}:${String(s).padStart(2, '0')}`;
 }
 
-export default function HomePage() {
+function HomePageContent() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { lang, t } = useLanguage();
 
   const [riotIdInput, setRiotIdInput] = useState('');
@@ -52,6 +65,8 @@ export default function HomePage() {
   const [matches, setMatches] = useState<MatchListItemDto[]>([]);
   const [history, setHistory] = useState<SavedUserAnalysis[]>([]);
   const [config, setConfig] = useState<ConfigStatus | null>(null);
+  const [favorite, setFavorite] = useState<FavoriteProfile | null>(null);
+  const [recentSearches, setRecentSearches] = useState<RecentSearchItem[]>([]);
 
   useEffect(() => {
     fetch('/api/config-status')
@@ -60,14 +75,34 @@ export default function HomePage() {
       .catch(() => {});
 
     setHistory(getUserHistory());
+    setFavorite(getFavoriteProfile());
+    setRecentSearches(getRecentSearches());
+
+    const onFavUpdate = () => {
+      setFavorite(getFavoriteProfile());
+      setRecentSearches(getRecentSearches());
+    };
+    window.addEventListener('scryer-favorite-updated', onFavUpdate);
+    return () => window.removeEventListener('scryer-favorite-updated', onFavUpdate);
   }, []);
 
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault();
+  // Handle URL query parameters (e.g. from top nav favorite click)
+  useEffect(() => {
+    const qSummoner = searchParams.get('summoner');
+    const qRegion = searchParams.get('region') as RegionCode | null;
+    if (qSummoner) {
+      setRiotIdInput(qSummoner);
+      const reg = qRegion && REGION_LIST.some((r) => r.code === qRegion) ? qRegion : 'euw';
+      setRegion(reg);
+      performSearch(qSummoner, reg);
+    }
+  }, [searchParams]);
+
+  async function performSearch(rawInput: string, selectedRegion: RegionCode) {
     setErrorCode(null);
     setErrorMsg(null);
 
-    const trimmed = riotIdInput.trim();
+    const trimmed = rawInput.trim();
     const hashIdx = trimmed.lastIndexOf('#');
     if (hashIdx <= 0 || hashIdx === trimmed.length - 1) {
       setErrorCode('INVALID_RIOT_ID');
@@ -80,7 +115,7 @@ export default function HomePage() {
 
     setSearching(true);
     try {
-      const qs = new URLSearchParams({ gameName, tagLine, region });
+      const qs = new URLSearchParams({ gameName, tagLine, region: selectedRegion });
       const res = await fetch(`/api/summoner?${qs.toString()}`);
       const data = await res.json();
       if (!res.ok) {
@@ -99,6 +134,8 @@ export default function HomePage() {
 
       setAccount(data.account);
       setMatches(data.matches || []);
+      addRecentSearch(trimmed, selectedRegion);
+      setRecentSearches(getRecentSearches());
     } catch {
       setErrorCode('NETWORK');
       setErrorMsg('Network error');
@@ -106,6 +143,47 @@ export default function HomePage() {
       setSearching(false);
     }
   }
+
+  function handleSearch(e: React.FormEvent) {
+    e.preventDefault();
+    performSearch(riotIdInput, region);
+  }
+
+  function handleQuickSearch(targetRiotId: string, targetRegion: RegionCode) {
+    setRiotIdInput(targetRiotId);
+    setRegion(targetRegion);
+    performSearch(targetRiotId, targetRegion);
+  }
+
+  function handleToggleFavorite() {
+    if (!account) return;
+    const isCurrentlyFav =
+      favorite &&
+      favorite.riotId.toLowerCase() === account.riotId.toLowerCase() &&
+      favorite.region.toLowerCase() === account.region.toLowerCase();
+
+    if (isCurrentlyFav) {
+      removeFavoriteProfile();
+      setFavorite(null);
+    } else {
+      const newFav: FavoriteProfile = {
+        puuid: account.puuid,
+        riotId: account.riotId,
+        region: account.region,
+        savedAt: Date.now(),
+      };
+      saveFavoriteProfile(newFav);
+      setFavorite(newFav);
+    }
+  }
+
+  const isAccountFavorite =
+    Boolean(
+      account &&
+        favorite &&
+        favorite.riotId.toLowerCase() === account.riotId.toLowerCase() &&
+        favorite.region.toLowerCase() === account.region.toLowerCase()
+    );
 
   return (
     <div className="space-y-6">
@@ -165,6 +243,50 @@ export default function HomePage() {
               );
             })}
           </div>
+
+          {/* Quick Access: Favorite Profile & Recent Searches */}
+          {(favorite || recentSearches.length > 0) && (
+            <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-3 text-[12px]">
+              {favorite && (
+                <button
+                  type="button"
+                  onClick={() => handleQuickSearch(favorite.riotId, favorite.region as RegionCode)}
+                  className="inline-flex items-center gap-1.5 rounded-full bg-yellow-500/15 px-3 py-1 font-semibold text-yellow-300 ring-1 ring-yellow-500/30 transition-all hover:bg-yellow-500/25 active:scale-95"
+                >
+                  <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                  <span>{favorite.riotId}</span>
+                  <span className="text-[10px] text-yellow-400/70 uppercase">({favorite.region})</span>
+                </button>
+              )}
+
+              {recentSearches.length > 0 && (
+                <div className="flex flex-wrap items-center gap-1.5">
+                  <span className="text-[#8E8E93] text-[11px] mr-0.5">{t.recentSearches}:</span>
+                  {recentSearches.map((s, idx) => (
+                    <button
+                      key={`${s.riotId}-${idx}`}
+                      type="button"
+                      onClick={() => handleQuickSearch(s.riotId, s.region as RegionCode)}
+                      className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11.5px] text-[#C7C7CC] ring-1 ring-white/[0.08] transition-all hover:bg-white/[0.12] hover:text-white active:scale-95"
+                    >
+                      {s.riotId} <span className="text-[10px] text-[#8E8E93] uppercase">({s.region})</span>
+                    </button>
+                  ))}
+                  <button
+                    type="button"
+                    onClick={() => {
+                      clearRecentSearches();
+                      setRecentSearches([]);
+                    }}
+                    title={t.clearRecentSearches}
+                    className="text-[11px] text-[#8E8E93] hover:text-white px-1 underline"
+                  >
+                    {t.clearRecentSearches}
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
         </form>
 
         {/* Inline Error Card */}
@@ -192,15 +314,31 @@ export default function HomePage() {
         </section>
       )}
 
-
-
       {/* Search Results: Recent Matches (iOS Grouped Inset List) */}
       {account && matches.length > 0 && (
         <section className="mx-auto max-w-3xl space-y-2.5">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-[17px] font-semibold text-white">
-              {t.recentMatchesTitle} — {account.riotId}
-            </h2>
+          <div className="flex flex-wrap items-center justify-between gap-2 px-1">
+            <div className="flex items-center gap-2.5">
+              <h2 className="text-[17px] font-semibold text-white">
+                {t.recentMatchesTitle} — {account.riotId}
+              </h2>
+              <button
+                type="button"
+                onClick={handleToggleFavorite}
+                className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-semibold transition-all ${
+                  isAccountFavorite
+                    ? 'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/40 hover:bg-yellow-500/30'
+                    : 'bg-white/[0.08] text-[#D1D1D6] ring-1 ring-white/10 hover:bg-white/[0.14]'
+                }`}
+              >
+                <Star
+                  className={`h-3 w-3 ${
+                    isAccountFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-white/60'
+                  }`}
+                />
+                {isAccountFavorite ? t.pinnedProfile : t.pinAsFavorite}
+              </button>
+            </div>
             <span className="text-[12px] font-medium text-[#98989D]">
               {account.region.toUpperCase()}
             </span>
@@ -258,32 +396,22 @@ export default function HomePage() {
                         <span className="font-medium text-[#E5E5EA]">
                           {m.kills}/{m.deaths}/{m.assists}
                         </span>
-                        <span>{m.cs} CS ({m.csPerMin}/m)</span>
+                        <span>{m.cs} CS</span>
+                        <span>{formatDuration(m.durationSec)}</span>
                         <span>{getQueueLabel(m.queueId, lang)}</span>
-                        <span className="inline-flex items-center gap-1">
-                          <Clock className="h-3 w-3" /> {formatDuration(m.durationSec)}
-                        </span>
-                        <span>v{m.patch}</span>
                       </div>
                     </div>
                   </div>
 
                   <div className="flex shrink-0 items-center gap-2">
-                    {!m.isSupported ? (
-                      <span className="rounded-full bg-white/[0.07] px-2.5 py-1 text-[11px] font-medium text-[#98989D]">
-                        {m.unsupportedReason === 'REMAKE' ? t.remakeLabel : t.nonSrLabel}
-                      </span>
-                    ) : (m.isAnalyzed || history.some((h) => h.matchId === m.matchId)) ? (
-                      <span className="inline-flex items-center gap-1.5 rounded-full bg-[#30D158]/15 px-3 py-1 text-[12px] font-semibold text-[#30D158]">
-                        {(m.cachedGrade || history.find((h) => h.matchId === m.matchId)?.grade)
-                          ? `${m.cachedGrade || history.find((h) => h.matchId === m.matchId)?.grade} · `
-                          : ''}
-                        {t.analyzedBadge}
+                    {m.isSupported ? (
+                      <span className="inline-flex items-center gap-1 rounded-full bg-white/[0.08] px-3 py-1 text-[12px] font-semibold text-white transition-all hover:bg-[#0A84FF] active:scale-[0.96]">
+                        {t.analyzeButton}
+                        <ChevronRight className="h-3.5 w-3.5 text-[#98989D]" />
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1 rounded-full bg-[#0A84FF]/15 px-3 py-1 text-[12px] font-semibold text-[#0A84FF]">
-                        {t.analyzeButton}
-                        <ChevronRight className="h-3.5 w-3.5" />
+                      <span className="rounded-full bg-white/[0.05] px-2.5 py-0.5 text-[11px] text-[#636366]">
+                        {lang === 'ru' ? 'Не поддерживается' : 'Unsupported'}
                       </span>
                     )}
                   </div>
@@ -294,81 +422,105 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Personal Analyses (Saved on this device) */}
-      <section className="mx-auto max-w-3xl space-y-2.5">
-        <div className="flex items-center justify-between px-1">
-          <div className="flex items-center gap-2">
-            <Database className="h-4 w-4 text-purple-400" />
-            <h2 className="text-[17px] font-semibold text-white">
-              {lang === 'ru' ? 'Мои сохранённые разборы' : 'My Saved Analyses'}
-            </h2>
-            {history.length > 0 && (
-              <span className="rounded-full bg-purple-950/60 border border-purple-800/40 px-2 py-0.5 text-[11px] font-semibold text-purple-300">
-                {history.length}
-              </span>
-            )}
+      {/* Demo Match Banner */}
+      <section className="mx-auto max-w-3xl">
+        <div className="ios-sheet flex flex-col items-start justify-between gap-4 rounded-[22px] p-5 sm:flex-row sm:items-center">
+          <div className="space-y-1">
+            <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-purple-300 ring-1 ring-purple-500/30">
+              <Sparkles className="h-3 w-3" />
+              {t.demoLabel}
+            </div>
+            <h3 className="text-[16px] font-semibold text-white">{t.demoBannerTitle}</h3>
+            <p className="text-[13px] text-[#98989D]">{t.demoBannerSubtitle}</p>
           </div>
-          {history.length > 0 && (
+          <Link
+            href="/match/euw/DEMO-MATCH-001?puuid=DEMO_PUUID"
+            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[12px] bg-gradient-to-r from-purple-600 to-rose-700 px-5 text-[13px] font-semibold text-white shadow-lg transition-all hover:opacity-90 active:scale-[0.97]"
+          >
+            {t.openDemoButton}
+            <ChevronRight className="h-4 w-4" />
+          </Link>
+        </div>
+      </section>
+
+      {/* Local Cached History */}
+      {history.length > 0 && (
+        <section className="mx-auto max-w-3xl space-y-2.5">
+          <div className="flex items-center justify-between px-1">
+            <div className="flex items-center gap-2">
+              <Database className="h-4 w-4 text-[#98989D]" />
+              <h2 className="text-[17px] font-semibold text-white">{t.savedHistoryTitle}</h2>
+            </div>
             <button
               type="button"
               onClick={() => {
                 clearUserHistory();
                 setHistory([]);
               }}
-              className="text-[12px] font-medium text-[#98989D] hover:text-[#FF453A] transition-colors"
+              className="text-[12px] text-[#8E8E93] hover:text-[#FF453A]"
             >
-              {lang === 'ru' ? 'Очистить историю' : 'Clear history'}
+              {t.clearHistory}
             </button>
-          )}
-        </div>
-
-        {history.length === 0 ? (
-          <div className="ios-sheet rounded-[20px] p-6 text-center text-[13.5px] text-[#98989D]">
-            {lang === 'ru'
-              ? 'Вы пока не сохраняли разборы на этом устройстве. Найдите свой Riot ID выше, чтобы разобрать матч.'
-              : 'No saved analyses on this device yet. Search your Riot ID above to analyze a match.'}
           </div>
-        ) : (
-          <div className="ios-sheet overflow-hidden rounded-[22px] divide-y divide-white/[0.06]">
-            {history.map((item) => (
-              <Link
-                key={`${item.matchId}-${item.puuid}`}
-                href={`/match/${item.region}/${encodeURIComponent(item.matchId)}?puuid=${encodeURIComponent(item.puuid)}`}
-                className="flex items-center justify-between gap-3 px-4 py-3.5 transition-colors hover:bg-white/[0.05] active:bg-white/[0.08]"
-              >
-                <div className="flex items-center gap-3">
-                  <span
-                    className={`h-9 w-1 rounded-full ${
-                      item.result === 'WIN' ? 'bg-[#30D158]' : 'bg-[#FF453A]'
-                    }`}
-                  />
-                  <div>
-                    <div className="flex items-center gap-2 text-[14px] font-semibold text-white">
-                      <span>{item.championName}</span>
-                      <span className="text-[12px] font-normal text-[#98989D]">{item.riotId}</span>
-                      <span className="rounded bg-purple-950/60 border border-purple-800/40 px-1.5 py-0.5 text-[10px] font-bold uppercase text-purple-300">
-                        {item.region.toUpperCase()}
-                      </span>
-                    </div>
-                    <div className="text-[12px] text-[#98989D]">
-                      {item.result === 'WIN' ? t.win : t.lose} · Patch {item.patch}
+
+          <div className="ios-sheet divide-y divide-white/[0.06] overflow-hidden rounded-[22px]">
+            {history.map((h) => {
+              const isWin = h.result === 'WIN';
+              return (
+                <Link
+                  key={`${h.matchId}-${h.puuid}`}
+                  href={`/match/${h.region}/${encodeURIComponent(h.matchId)}?puuid=${encodeURIComponent(h.puuid)}`}
+                  className="flex items-center justify-between gap-3 px-4 py-3 transition-colors hover:bg-white/[0.05] active:bg-white/[0.08]"
+                >
+                  <div className="flex min-w-0 items-center gap-3">
+                    <img
+                      src={getChampionIconUrl(h.patch, h.championName)}
+                      alt={h.championName}
+                      className="h-10 w-10 rounded-[12px] object-cover ring-1 ring-white/10"
+                    />
+                    <div className="min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className="text-[14px] font-semibold text-white">
+                          {h.championName}
+                        </span>
+                        <span
+                          className={`text-[11px] font-semibold ${
+                            isWin ? 'text-[#30D158]' : 'text-[#FF453A]'
+                          }`}
+                        >
+                          {isWin ? t.win : t.lose}
+                        </span>
+                        {h.grade && (
+                          <span className="rounded bg-purple-500/20 px-1.5 py-0.2 text-[11px] font-bold text-purple-300">
+                            {h.grade}
+                          </span>
+                        )}
+                      </div>
+                      <div className="text-[12px] text-[#98989D]">
+                        {h.riotId} · {h.region.toUpperCase()} · Patch {h.patch}
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div className="flex items-center gap-2">
-                  {item.grade && (
-                    <span className="rounded-full bg-purple-600/20 border border-purple-500/30 px-3 py-1 text-[12px] font-bold tabular-nums text-purple-200 shadow-sm">
-                      Ранг {item.grade} {item.score != null ? `(${item.score > 10 ? item.score : item.score * 10}/100)` : ''}
-                    </span>
-                  )}
-                  <ChevronRight className="h-4 w-4 text-[#636366]" />
-                </div>
-              </Link>
-            ))}
+                  <div className="flex items-center gap-1.5 text-[12px] text-[#8E8E93]">
+                    <Clock className="h-3 w-3" />
+                    <span>{new Date(h.analyzedAt).toLocaleDateString()}</span>
+                    <ChevronRight className="h-4 w-4" />
+                  </div>
+                </Link>
+              );
+            })}
           </div>
-        )}
-      </section>
+        </section>
+      )}
     </div>
+  );
+}
+
+export default function HomePage() {
+  return (
+    <Suspense fallback={<div className="min-h-[50vh]" />}>
+      <HomePageContent />
+    </Suspense>
   );
 }

@@ -91,6 +91,12 @@ export const en: Dictionary = {
   riotKeyExpiredBody: 'Riot Dev keys expire every 24 hours. Refresh RIOT_API_KEY in .env.local and restart the server. Saved analyses below remain accessible.',
   summonerNotFound: 'Summoner not found. Check GameName#Tag and selected region.',
   invalidRiotId: 'Enter Riot ID in GameName#Tag format (e.g. chovyloh#228).',
+  pinAsFavorite: 'Pin as Favorite',
+  pinnedProfile: 'Pinned Profile',
+  unpinProfile: 'Unpin',
+  recentSearches: 'Recent Searches',
+  clearRecentSearches: 'Clear search history',
+  clearHistory: 'Clear history',
   ratings: {
     great: 'Great',
     ok: 'Solid',

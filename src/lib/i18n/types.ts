@@ -87,6 +87,12 @@ export interface Dictionary {
   riotKeyExpiredBody: string;
   summonerNotFound: string;
   invalidRiotId: string;
+  pinAsFavorite: string;
+  pinnedProfile: string;
+  unpinProfile: string;
+  recentSearches: string;
+  clearRecentSearches: string;
+  clearHistory: string;
   ratings: {
     great: string;
     ok: string;
