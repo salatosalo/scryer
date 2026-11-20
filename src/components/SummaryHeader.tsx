@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect, useState } from 'react';
 import {
   AlertTriangle,
   ArrowLeft,
@@ -7,6 +8,7 @@ import {
   Flame,
   RefreshCw,
   Sparkles,
+  Star,
   Target,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -15,6 +17,12 @@ import type { EngineReport } from '@/lib/engine/types';
 import { useLanguage } from '@/lib/i18n/context';
 import { getChampionDisplayName, getChampionIconUrl } from '@/lib/riot/assets';
 import { getQueueLabel } from '@/lib/riot/regions';
+import {
+  getFavoriteProfile,
+  removeFavoriteProfile,
+  saveFavoriteProfile,
+  type FavoriteProfile,
+} from '@/lib/storage/favorite-profile';
 
 interface SummaryHeaderProps {
   engine: EngineReport;
@@ -92,6 +100,36 @@ export function SummaryHeader({
   const ringColor = gradeColor(grade);
   const ringOffset = score != null ? 176 - (176 * Math.max(0, Math.min(100, score))) / 100 : 176;
   const aiBadge = getAiBadgeInfo(meta.provider, meta.model, lang);
+
+  const [favorite, setFavorite] = useState<FavoriteProfile | null>(null);
+
+  useEffect(() => {
+    setFavorite(getFavoriteProfile());
+    const onFavUpdate = () => setFavorite(getFavoriteProfile());
+    window.addEventListener('scryer-favorite-updated', onFavUpdate);
+    return () => window.removeEventListener('scryer-favorite-updated', onFavUpdate);
+  }, []);
+
+  const isFavorite =
+    favorite &&
+    favorite.riotId.toLowerCase() === target.riotId.toLowerCase() &&
+    favorite.region.toLowerCase() === engine.region.toLowerCase();
+
+  const handleToggleFavorite = () => {
+    if (isFavorite) {
+      removeFavoriteProfile();
+      setFavorite(null);
+    } else {
+      const newFav: FavoriteProfile = {
+        puuid: '',
+        riotId: target.riotId,
+        region: engine.region,
+        savedAt: Date.now(),
+      };
+      saveFavoriteProfile(newFav);
+      setFavorite(newFav);
+    }
+  };
 
   return (
     <section className="space-y-4">
@@ -172,12 +210,30 @@ export function SummaryHeader({
                   </span>
                 )}
               </div>
-              <p className="text-[13px] text-[#98989D]">
-                {target.riotId} · {engine.region.toUpperCase()} · {getQueueLabel(engine.queueId, lang)} ·{' '}
+              <div className="flex flex-wrap items-center gap-2 text-[13px] text-[#98989D]">
+                <span className="font-medium text-white">{target.riotId}</span>
+                <button
+                  type="button"
+                  onClick={handleToggleFavorite}
+                  title={isFavorite ? t.unpinProfile : t.pinAsFavorite}
+                  className={`inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold transition-all ${
+                    isFavorite
+                      ? 'bg-yellow-500/20 text-yellow-300 ring-1 ring-yellow-500/40 hover:bg-yellow-500/30'
+                      : 'bg-white/[0.08] text-[#C7C7CC] ring-1 ring-white/10 hover:bg-white/[0.14] hover:text-white'
+                  }`}
+                >
+                  <Star className={`h-2.5 w-2.5 ${isFavorite ? 'fill-yellow-400 text-yellow-400' : 'text-white/60'}`} />
+                  <span>{isFavorite ? t.pinnedProfile : t.pinAsFavorite}</span>
+                </button>
+                <span>·</span>
+                <span>{engine.region.toUpperCase()}</span>
+                <span>·</span>
+                <span>{getQueueLabel(engine.queueId, lang)}</span>
+                <span>·</span>
                 <span className="tabular-nums">
                   {Math.floor(engine.durationSec / 60)}:{String(engine.durationSec % 60).padStart(2, '0')}
                 </span>
-              </p>
+              </div>
 
               {/* Core Stat Strip */}
               <div className="flex flex-wrap items-center gap-x-4 gap-y-1 pt-1 text-[13px] tabular-nums">

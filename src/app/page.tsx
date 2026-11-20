@@ -155,6 +155,29 @@ function HomePageContent() {
     performSearch(targetRiotId, targetRegion);
   }
 
+  function handlePinFromInput() {
+    const trimmed = riotIdInput.trim();
+    if (!trimmed.includes('#')) return;
+    const isCurrentlyFav =
+      favorite &&
+      favorite.riotId.toLowerCase() === trimmed.toLowerCase() &&
+      favorite.region.toLowerCase() === region.toLowerCase();
+
+    if (isCurrentlyFav) {
+      removeFavoriteProfile();
+      setFavorite(null);
+    } else {
+      const newFav: FavoriteProfile = {
+        puuid: '',
+        riotId: trimmed,
+        region: region,
+        savedAt: Date.now(),
+      };
+      saveFavoriteProfile(newFav);
+      setFavorite(newFav);
+    }
+  }
+
   function handleToggleFavorite() {
     if (!account) return;
     const isCurrentlyFav =
@@ -245,9 +268,9 @@ function HomePageContent() {
           </div>
 
           {/* Quick Access: Favorite Profile & Recent Searches */}
-          {(favorite || recentSearches.length > 0) && (
-            <div className="mt-3.5 flex flex-wrap items-center gap-2 border-t border-white/[0.06] pt-3 text-[12px]">
-              {favorite && (
+          <div className="mt-3.5 flex flex-wrap items-center justify-between gap-2 border-t border-white/[0.06] pt-3 text-[12px]">
+            <div className="flex flex-wrap items-center gap-2">
+              {favorite ? (
                 <button
                   type="button"
                   onClick={() => handleQuickSearch(favorite.riotId, favorite.region as RegionCode)}
@@ -255,13 +278,19 @@ function HomePageContent() {
                 >
                   <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
                   <span>{favorite.riotId}</span>
-                  <span className="text-[10px] text-yellow-400/70 uppercase">({favorite.region})</span>
+                  <span className="text-[10px] uppercase text-yellow-400/70">({favorite.region})</span>
                 </button>
+              ) : (
+                <span className="text-[11.5px] text-[#8E8E93]">
+                  {lang === 'ru'
+                    ? '★ Закрепите профиль для быстрого входа в 1 клик'
+                    : '★ Pin your profile for 1-click quick access'}
+                </span>
               )}
 
               {recentSearches.length > 0 && (
-                <div className="flex flex-wrap items-center gap-1.5">
-                  <span className="text-[#8E8E93] text-[11px] mr-0.5">{t.recentSearches}:</span>
+                <div className="ml-1 flex flex-wrap items-center gap-1.5">
+                  <span className="mr-0.5 text-[11px] text-[#8E8E93]">{t.recentSearches}:</span>
                   {recentSearches.map((s, idx) => (
                     <button
                       key={`${s.riotId}-${idx}`}
@@ -269,7 +298,7 @@ function HomePageContent() {
                       onClick={() => handleQuickSearch(s.riotId, s.region as RegionCode)}
                       className="rounded-full bg-white/[0.06] px-2.5 py-0.5 text-[11.5px] text-[#C7C7CC] ring-1 ring-white/[0.08] transition-all hover:bg-white/[0.12] hover:text-white active:scale-95"
                     >
-                      {s.riotId} <span className="text-[10px] text-[#8E8E93] uppercase">({s.region})</span>
+                      {s.riotId} <span className="text-[10px] uppercase text-[#8E8E93]">({s.region})</span>
                     </button>
                   ))}
                   <button
@@ -279,14 +308,30 @@ function HomePageContent() {
                       setRecentSearches([]);
                     }}
                     title={t.clearRecentSearches}
-                    className="text-[11px] text-[#8E8E93] hover:text-white px-1 underline"
+                    className="px-1 text-[11px] text-[#8E8E93] underline hover:text-white"
                   >
                     {t.clearRecentSearches}
                   </button>
                 </div>
               )}
             </div>
-          )}
+
+            {/* Quick pin button if user typed a valid Riot ID format */}
+            {riotIdInput.trim().includes('#') && (
+              <button
+                type="button"
+                onClick={handlePinFromInput}
+                className="inline-flex items-center gap-1.5 rounded-full bg-white/[0.08] px-2.5 py-1 text-[11.5px] font-medium text-yellow-300 ring-1 ring-yellow-400/30 transition-all hover:bg-white/[0.12] active:scale-95"
+              >
+                <Star className="h-3 w-3 fill-yellow-400 text-yellow-400" />
+                {favorite &&
+                favorite.riotId.toLowerCase() === riotIdInput.trim().toLowerCase() &&
+                favorite.region.toLowerCase() === region.toLowerCase()
+                  ? (lang === 'ru' ? 'Закреплён' : 'Pinned')
+                  : (lang === 'ru' ? 'Закрепить этот ник' : 'Pin this Riot ID')}
+              </button>
+            )}
+          </div>
         </form>
 
         {/* Inline Error Card */}
