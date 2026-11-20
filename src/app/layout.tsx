@@ -1,4 +1,5 @@
 import type { Metadata } from 'next';
+import { Analytics } from '@vercel/analytics/next';
 import { LanguageProvider } from '@/lib/i18n/context';
 import { TopNav } from '@/components/TopNav';
 import './globals.css';
@@ -21,6 +22,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
           <TopNav />
           <main className="mx-auto max-w-6xl px-4 pb-16 pt-6 sm:px-6">{children}</main>
         </LanguageProvider>
+        <Analytics />
       </body>
     </html>
   );
