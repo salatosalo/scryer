@@ -9,7 +9,6 @@ import {
   Clock,
   Database,
   Search,
-  Sparkles,
   Star,
   X,
 } from 'lucide-react';
@@ -466,27 +465,6 @@ function HomePageContent() {
           </div>
         </section>
       )}
-
-      {/* Demo Match Banner */}
-      <section className="mx-auto max-w-3xl">
-        <div className="ios-sheet flex flex-col items-start justify-between gap-4 rounded-[22px] p-5 sm:flex-row sm:items-center">
-          <div className="space-y-1">
-            <div className="inline-flex items-center gap-1.5 rounded-full bg-purple-500/15 px-2.5 py-0.5 text-[11px] font-semibold text-purple-300 ring-1 ring-purple-500/30">
-              <Sparkles className="h-3 w-3" />
-              {t.demoLabel}
-            </div>
-            <h3 className="text-[16px] font-semibold text-white">{t.demoBannerTitle}</h3>
-            <p className="text-[13px] text-[#98989D]">{t.demoBannerSubtitle}</p>
-          </div>
-          <Link
-            href="/match/euw/DEMO-MATCH-001?puuid=DEMO_PUUID"
-            className="inline-flex h-10 shrink-0 items-center gap-1.5 rounded-[12px] bg-gradient-to-r from-purple-600 to-rose-700 px-5 text-[13px] font-semibold text-white shadow-lg transition-all hover:opacity-90 active:scale-[0.97]"
-          >
-            {t.openDemoButton}
-            <ChevronRight className="h-4 w-4" />
-          </Link>
-        </div>
-      </section>
 
       {/* Local Cached History */}
       {history.length > 0 && (

@@ -17,7 +17,7 @@ export const en: Dictionary = {
   setupNoticeAiMissing: 'GEMINI_API_KEY / GROQ_API_KEY not set — matches still open with full deterministic metrics and minimap.',
   recentMatchesTitle: 'Recent matches',
   savedHistoryTitle: 'Saved analyses',
-  noHistoryYet: 'No analyzed matches yet. Search your Riot ID above or open the demo match.',
+  noHistoryYet: 'No analyzed matches yet. Search your Riot ID above.',
   analyzedBadge: 'Cached',
   analyzeButton: 'Analyze',
   openReportButton: 'Open',

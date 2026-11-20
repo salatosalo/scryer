@@ -17,7 +17,7 @@ export const ru: Dictionary = {
   setupNoticeAiMissing: 'Не задан GEMINI_API_KEY или GROQ_API_KEY — матчи откроются с бесплатным движком метрик и мини-картой без текста ИИ.',
   recentMatchesTitle: 'Последние матчи',
   savedHistoryTitle: 'Сохранённые разборы',
-  noHistoryYet: 'Пока нет сохранённых разборов. Найди свой Riot ID выше или открой демо-матч.',
+  noHistoryYet: 'Пока нет сохранённых разборов. Найди свой Riot ID выше.',
   analyzedBadge: 'В кеше',
   analyzeButton: 'Разобрать',
   openReportButton: 'Открыть',
