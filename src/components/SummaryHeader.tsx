@@ -230,12 +230,12 @@ export function SummaryHeader({
                   {score}
                   <span className="text-[13px] font-normal text-[#98989D]">/100</span>
                 </div>
-                <div className="mt-1 flex gap-2.5 text-[12px] text-[#98989D]">
-                  <span>
-                    {t.draftScoreLabel.split(' ')[0]} <strong className="text-white">{ai.draftEvaluation.score}/10</strong>
+                <div className="mt-1.5 flex items-center gap-2.5 text-[12px] text-[#98989D]">
+                  <span className="rounded-md bg-white/[0.05] px-2 py-0.5 ring-1 ring-white/[0.08]">
+                    {lang === 'ru' ? 'Драфт' : 'Draft'}: <strong className="font-semibold text-white">{ai.draftEvaluation.score}/10</strong>
                   </span>
-                  <span>
-                    {t.buildScoreLabel.split(' ')[0]} <strong className="text-white">{ai.buildEvaluation.score}/10</strong>
+                  <span className="rounded-md bg-white/[0.05] px-2 py-0.5 ring-1 ring-white/[0.08]">
+                    {lang === 'ru' ? 'Сборка' : 'Build'}: <strong className="font-semibold text-white">{ai.buildEvaluation.score}/10</strong>
                   </span>
                 </div>
               </div>
@@ -265,17 +265,6 @@ export function SummaryHeader({
         {/* AI Verdict & Clickable Highlights */}
         {ai && (
           <div className="mt-4 space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-white/[0.08] pb-3">
-              <div className="flex items-center gap-2 text-[14px] font-semibold text-white">
-                <Sparkles className="h-4 w-4 text-purple-400" />
-                <span>{lang === 'ru' ? 'Вердикт AI-тренера' : 'AI Coach Verdict'}</span>
-              </div>
-              <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[11.5px] font-medium ring-1 ${aiBadge.tagClass}`}>
-                <span className={`h-1.5 w-1.5 rounded-full ${aiBadge.dotClass}`} />
-                {aiBadge.fullLabel}
-              </span>
-            </div>
-
             <p className="max-w-4xl text-[15px] leading-relaxed text-[#E5E5EA]">
               {ai.summary.verdict}
             </p>
