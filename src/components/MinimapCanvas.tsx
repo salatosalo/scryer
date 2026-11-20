@@ -39,40 +39,87 @@ function toPercent(x: number, y: number): { left: number; top: number } {
 }
 
 function getInterpolatedPositions(
-  currentMinute: MinuteSnapshot,
-  nextMinute: MinuteSnapshot | undefined,
+  startMinute: MinuteSnapshot | undefined,
+  endMinute: MinuteSnapshot,
   secondInMinute: number,
   selectedEvent: TimelineEventSummary | null
 ): PlayerPosition[] {
+  // If no event selected, we show endMinute (the sample at the minute mark)
+  if (!selectedEvent) {
+    return endMinute.positions;
+  }
+
+  // Fraction t between startMinute (e.g. 15:00) and endMinute (e.g. 16:00)
   const t = Math.max(0, Math.min(1, secondInMinute / 60));
 
-  return currentMinute.positions.map((p1) => {
-    // If a kill/death event is selected, place the target or victim exactly on the event coordinates
-    if (selectedEvent && selectedEvent.x != null && selectedEvent.y != null) {
-      if (selectedEvent.type === 'DEATH' && p1.isTarget) {
-        return { ...p1, x: selectedEvent.x, y: selectedEvent.y };
+  return endMinute.positions.map((endPos) => {
+    // 1. Precise combat placement for champions involved in the event
+    if (selectedEvent.x != null && selectedEvent.y != null) {
+      const isTarget = endPos.isTarget;
+      const isVictim =
+        (selectedEvent.victimChampionName && selectedEvent.victimChampionName === endPos.championName) ||
+        (isTarget && selectedEvent.type === 'DEATH');
+      const isKiller =
+        (selectedEvent.killerChampionName && selectedEvent.killerChampionName === endPos.championName) ||
+        (isTarget && selectedEvent.type === 'KILL');
+      const isAssist = isTarget && selectedEvent.type === 'ASSIST';
+
+      if (isVictim) {
+        return {
+          ...endPos,
+          x: selectedEvent.x,
+          y: selectedEvent.y,
+          alive: false, // Victim is killed at this exact moment
+        };
       }
-      if (selectedEvent.victimChampionName && selectedEvent.victimChampionName === p1.championName) {
-        return { ...p1, x: selectedEvent.x, y: selectedEvent.y };
+
+      if (isKiller) {
+        // Place killer in active combat range facing the victim
+        return {
+          ...endPos,
+          x: Math.round(selectedEvent.x - 220),
+          y: Math.round(selectedEvent.y + 160),
+          alive: true,
+        };
+      }
+
+      if (isAssist) {
+        return {
+          ...endPos,
+          x: Math.round(selectedEvent.x + 240),
+          y: Math.round(selectedEvent.y - 180),
+          alive: true,
+        };
+      }
+
+      if (isTarget && selectedEvent.involvesTarget && selectedEvent.type === 'OBJECTIVE') {
+        return {
+          ...endPos,
+          x: Math.round(selectedEvent.x - 180),
+          y: Math.round(selectedEvent.y + 120),
+          alive: true,
+        };
       }
     }
 
-    if (t === 0 || !nextMinute) {
-      return p1;
+    // 2. Interpolate other champions between startMinute and endMinute
+    if (!startMinute) {
+      return endPos;
     }
 
-    const p2 = nextMinute.positions.find((x) => x.participantId === p1.participantId);
-    if (!p2) return p1;
+    const startPos = startMinute.positions.find((x) => x.participantId === endPos.participantId);
+    if (!startPos) {
+      return endPos;
+    }
 
-    // Linear interpolation between the two minute snapshots
-    const interpX = Math.round(p1.x + (p2.x - p1.x) * t);
-    const interpY = Math.round(p1.y + (p2.y - p1.y) * t);
+    const interpX = Math.round(startPos.x + (endPos.x - startPos.x) * t);
+    const interpY = Math.round(startPos.y + (endPos.y - startPos.y) * t);
 
     return {
-      ...p1,
+      ...endPos,
       x: interpX,
       y: interpY,
-      alive: t > 0.5 ? p2.alive : p1.alive,
+      alive: t > 0.5 ? endPos.alive : startPos.alive,
     };
   });
 }
@@ -88,18 +135,22 @@ export function MinimapCanvas({
   const { t } = useLanguage();
   const maxMinute = minutes.length;
   const current = minutes.find((m) => m.minute === activeMinute) ?? minutes[0];
-  const nextMinute = minutes.find((m) => m.minute === activeMinute + 1);
+  const prevMinute = minutes.find((m) => m.minute === activeMinute - 1);
 
   const [selectedEvent, setSelectedEvent] = useState<TimelineEventSummary | null>(null);
 
   // If activeMinute changed, ensure selectedEvent matches current minute
   const activeEvent = selectedEvent && selectedEvent.minute === activeMinute ? selectedEvent : null;
-  const activeSecond = activeEvent ? activeEvent.timestampSec % 60 : 0;
+
+  // Exact second offset from start of this minute interval (e.g. 15:07 -> 7 sec)
+  const activeSecond = activeEvent
+    ? Math.max(0, Math.min(60, activeEvent.timestampSec - (activeMinute - 1) * 60))
+    : 0;
 
   const currentPositions = useMemo(() => {
     if (!current) return [];
-    return getInterpolatedPositions(current, nextMinute, activeSecond, activeEvent);
-  }, [current, nextMinute, activeSecond, activeEvent]);
+    return getInterpolatedPositions(prevMinute, current, activeSecond, activeEvent);
+  }, [prevMinute, current, activeSecond, activeEvent]);
 
   if (!current) return null;
 
@@ -109,9 +160,11 @@ export function MinimapCanvas({
   );
   const objEvents = current.events.filter((e) => e.type === 'OBJECTIVE' && e.x != null && e.y != null);
 
-  const minStr = String(current.minute).padStart(2, '0');
-  const secStr = String(activeSecond).padStart(2, '0');
-  const displayTime = `${minStr}:${secStr}`;
+  const displayTime = activeEvent
+    ? `${String(Math.floor(activeEvent.timestampSec / 60)).padStart(2, '0')}:${String(
+        activeEvent.timestampSec % 60
+      ).padStart(2, '0')}`
+    : `${String(current.minute).padStart(2, '0')}:00`;
 
   return (
     <div className="ios-sheet rounded-[22px] p-4">
