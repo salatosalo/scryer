@@ -451,6 +451,8 @@ export function analyzeMatchTimeline(input: {
             nearbyAllies,
             nearbyEnemies,
             topDamageSources,
+            killerChampionName: killer?.championName,
+            victimChampionName: target.championName,
           });
         } else if (isKiller || isAssist) {
           targetParticipatedInKill = true;
@@ -465,6 +467,8 @@ export function analyzeMatchTimeline(input: {
             x: ev.position?.x,
             y: ev.position?.y,
             involvesTarget: true,
+            killerChampionName: killer?.championName,
+            victimChampionName: victim?.championName,
           });
         }
       } else if (ev.type === 'ELITE_MONSTER_KILL') {

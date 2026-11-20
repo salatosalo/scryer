@@ -42,6 +42,10 @@ export interface Dictionary {
   mistakesTitle: string;
   nextGameRulesTitle: string;
   minimapTitle: string;
+  minuteEventsTitle: string;
+  noMinuteEvents: string;
+  eventFocusHint: string;
+  resetEventFocus: string;
   minuteShort: string;
   play: string;
   pause: string;
