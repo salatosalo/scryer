@@ -90,6 +90,8 @@ export interface TimelineEventSummary {
   topDamageSources?: string[];
   itemId?: number;
   itemName?: string;
+  killerChampionName?: string;
+  victimChampionName?: string;
 }
 
 export interface PurchaseEntry {
